@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Letly Viewing Report</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #000000;
+      background: #ffffff;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .screen { display: none; min-height: 100dvh; }
+    .screen.active { display: flex; flex-direction: column; }
+
+    /* Login */
+    #login-screen { align-items: center; justify-content: center; padding: 24px; }
+    .login-box { width: 100%; max-width: 340px; text-align: center; }
+    .login-logo { width: 140px; margin-bottom: 32px; }
+    .login-title { font-size: 20px; font-weight: 600; margin-bottom: 32px; }
+    .login-input {
+      width: 100%; padding: 14px 16px;
+      border: 1.5px solid #000000; border-radius: 8px;
+      font-family: inherit; font-size: 16px; color: #000000;
+      outline: none; margin-bottom: 8px;
+    }
+    .login-input:focus { box-shadow: 0 0 0 3px rgba(0,0,0,0.08); }
+    .login-error { font-size: 14px; color: #dc2626; min-height: 22px; margin-bottom: 8px; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 13px 24px; border: none; border-radius: 8px;
+      font-family: inherit; font-size: 16px; font-weight: 600;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      transition: opacity 0.15s;
+    }
+    .btn:active { opacity: 0.75; }
+    .btn-primary { background: #000000; color: #ffffff; width: 100%; }
+    .btn-outline { background: #ffffff; color: #000000; border: 1.5px solid #000000; }
+    .btn-danger { background: #dc2626; color: #ffffff; }
+    .btn-sm { padding: 8px 14px; font-size: 14px; font-weight: 500; }
+
+    /* Header */
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px; border-bottom: 1.5px solid #000000;
+      position: sticky; top: 0; background: #ffffff; z-index: 100;
+    }
+    .header-logo { height: 26px; }
+    .header-title { font-size: 16px; font-weight: 600; }
+    .header-back {
+      background: none; border: none; font-family: inherit;
+      font-size: 15px; font-weight: 600; color: #000000;
+      cursor: pointer; padding: 6px 0; -webkit-tap-highlight-color: transparent;
+    }
+    .header-right { display: flex; gap: 12px; align-items: center; }
+
+    /* Content */
+    .content { flex: 1; padding: 20px; max-width: 600px; width: 100%; margin: 0 auto; }
+
+    /* Dashboard */
+    .new-report-btn { margin-bottom: 28px; }
+    .section-heading { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+    .report-card {
+      border: 1.5px solid #000000; border-radius: 10px;
+      padding: 16px; margin-bottom: 12px;
+    }
+    .report-name { font-size: 16px; font-weight: 600; margin-bottom: 2px; }
+    .report-address { font-size: 14px; margin-bottom: 2px; }
+    .report-date { font-size: 13px; margin-bottom: 12px; }
+    .report-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .empty-state { text-align: center; padding: 48px 20px; font-size: 15px; }
+
+    /* Form */
+    .form-wrap { flex: 1; padding: 20px; padding-bottom: 100px; max-width: 600px; width: 100%; margin: 0 auto; }
+    .form-section { margin-bottom: 28px; }
+    .form-section-title {
+      font-size: 17px; font-weight: 600; margin-bottom: 14px;
+      padding-bottom: 8px; border-bottom: 1.5px solid #000000;
+    }
+    .field { margin-bottom: 14px; }
+    .field-label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 5px; }
+    .field-input {
+      width: 100%; padding: 12px 14px;
+      border: 1.5px solid #000000; border-radius: 8px;
+      font-family: inherit; font-size: 16px; color: #000000;
+      background: #ffffff; outline: none; -webkit-appearance: none;
+    }
+    .field-input:focus { box-shadow: 0 0 0 3px rgba(0,0,0,0.08); }
+    .field-row { display: flex; gap: 12px; }
+    .field-row .field { flex: 1; }
+
+    select.field-input {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%23000'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center;
+      padding-right: 38px;
+    }
+    textarea.field-input { resize: vertical; min-height: 120px; line-height: 1.5; }
+
+    /* Score grid */
+    .score-hint { font-size: 13px; font-weight: 500; margin-bottom: 12px; }
+    .score-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px; gap: 8px;
+    }
+    .score-label { font-size: 14px; font-weight: 500; flex: 1; min-width: 0; }
+    .score-buttons { display: flex; gap: 6px; flex-shrink: 0; }
+    .score-btn {
+      width: 38px; height: 38px;
+      border: 1.5px solid #000000; border-radius: 8px;
+      background: #ffffff; font-family: inherit;
+      font-size: 14px; font-weight: 600; color: #000000;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.1s, color 0.1s;
+    }
+    .score-btn.selected { background: #000000; color: #ffffff; }
+
+    /* Amenities */
+    .amenity-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .amenity-checkbox { display: none; }
+    .amenity-label {
+      display: block; padding: 10px 16px;
+      border: 1.5px solid #000000; border-radius: 8px;
+      font-size: 14px; font-weight: 500; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.1s, color 0.1s;
+    }
+    .amenity-checkbox:checked + .amenity-label { background: #000000; color: #ffffff; }
+
+    /* Photos */
+    .photo-upload-btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; padding: 16px; border: 1.5px dashed #000000;
+      border-radius: 8px; background: none;
+      font-family: inherit; font-size: 15px; font-weight: 500;
+      color: #000000; cursor: pointer; margin-bottom: 14px;
+    }
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 8px;
+    }
+    .photo-thumb {
+      position: relative; aspect-ratio: 1;
+      border-radius: 8px; overflow: hidden; border: 1.5px solid #000000;
+    }
+    .photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .photo-remove {
+      position: absolute; top: 4px; right: 4px;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: #000000; color: #ffffff; border: none;
+      font-size: 16px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      line-height: 1;
+    }
+
+    /* Form bottom bar */
+    .form-bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #ffffff; border-top: 1.5px solid #000000;
+      padding: 12px 20px; display: flex; gap: 10px; z-index: 100;
+    }
+    .form-bar .btn { flex: 1; }
+    @media (min-width: 641px) {
+      .form-bar { max-width: 640px; left: 50%; transform: translateX(-50%); }
+    }
+
+    /* Overlay */
+    .overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(255,255,255,0.92); z-index: 300;
+      align-items: center; justify-content: center;
+      flex-direction: column; gap: 12px;
+    }
+    .overlay.active { display: flex; }
+    .overlay-text { font-size: 16px; font-weight: 500; }
+    .spinner {
+      width: 28px; height: 28px; border: 3px solid #000000;
+      border-top-color: transparent; border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      background: #000000; color: #ffffff;
+      padding: 12px 24px; border-radius: 8px;
+      font-size: 14px; font-weight: 500; z-index: 400;
+      opacity: 0; transition: opacity 0.25s; pointer-events: none;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- ===== LOGIN ===== -->
+<div id="login-screen" class="screen active">
+  <div class="login-box">
+    <img src="/logo.png" alt="Letly" class="login-logo" onerror="this.style.display='none'">
+    <div class="login-title">Letly Viewing Report</div>
+    <input type="password" id="password-input" class="login-input" placeholder="Password" autocomplete="current-password">
+    <div id="login-error" class="login-error"></div>
+    <button class="btn btn-primary" onclick="login()">Enter</button>
+  </div>
+</div>
+
+<!-- ===== DASHBOARD ===== -->
+<div id="dashboard-screen" class="screen">
+  <div class="header">
+    <img src="/logo.png" alt="Letly" class="header-logo" onerror="this.style.display='none'">
+    <button class="header-back" onclick="logout()">Log out</button>
+  </div>
+  <div class="content">
+    <button class="btn btn-primary new-report-btn" onclick="newReport()">New Report</button>
+    <div class="section-heading">Saved Reports</div>
+    <div id="reports-list"></div>
+  </div>
+</div>
+
+<!-- ===== FORM ===== -->
+<div id="form-screen" class="screen">
+  <div class="header">
+    <button class="header-back" onclick="backToDashboard()">Back</button>
+    <span id="form-title" class="header-title">New Report</span>
+    <div style="width:40px"></div>
+  </div>
+  <div class="form-wrap">
+    <form id="report-form" onsubmit="return false">
+
+      <!-- Property Information -->
+      <div class="form-section">
+        <div class="form-section-title">Property Information</div>
+        <div class="field">
+          <label class="field-label">Street Address</label>
+          <input type="text" name="streetAddress" class="field-input" placeholder="e.g. 42 High Street" required>
+        </div>
+        <div class="field">
+          <label class="field-label">Postcode</label>
+          <input type="text" name="postcode" class="field-input" placeholder="e.g. SW1A 1AA">
+        </div>
+        <div class="field">
+          <label class="field-label">Landlord Name</label>
+          <input type="text" name="landlordName" class="field-input" placeholder="e.g. Jack Robertson" required>
+        </div>
+        <div class="field">
+          <label class="field-label">Reference / Area</label>
+          <input type="text" name="reference" class="field-input" placeholder="e.g. Croydon" required>
+        </div>
+        <div class="field">
+          <label class="field-label">Property Type</label>
+          <select name="propertyType" class="field-input">
+            <option value="">Select</option>
+            <option>Flat</option>
+            <option>Studio</option>
+            <option>Terraced</option>
+            <option>Semi-Detached</option>
+            <option>Detached</option>
+            <option>Maisonette</option>
+            <option>Bungalow</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label">Bedrooms</label>
+            <input type="number" name="bedrooms" class="field-input" min="0" max="20" placeholder="0">
+          </div>
+          <div class="field">
+            <label class="field-label">Bathrooms</label>
+            <input type="number" name="bathrooms" class="field-input" min="0" max="10" placeholder="0">
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Council Tax Band</label>
+          <select name="councilTaxBand" class="field-input">
+            <option value="">Select</option>
+            <option>A</option><option>B</option><option>C</option><option>D</option>
+            <option>E</option><option>F</option><option>G</option><option>H</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Overall Property Condition -->
+      <div class="form-section">
+        <div class="form-section-title">Overall Property Condition</div>
+        <div class="score-hint">1 = Poor, 5 = Excellent</div>
+        <div id="score-overall" class="score-grid"></div>
+      </div>
+
+      <!-- Kitchen Condition -->
+      <div class="form-section">
+        <div class="form-section-title">Kitchen Condition</div>
+        <div class="score-hint">1 = Poor, 5 = Excellent</div>
+        <div id="score-kitchen" class="score-grid"></div>
+      </div>
+
+      <!-- Bathroom Condition -->
+      <div class="form-section">
+        <div class="form-section-title">Bathroom Condition</div>
+        <div class="score-hint">1 = Poor, 5 = Excellent</div>
+        <div id="score-bathroom" class="score-grid"></div>
+      </div>
+
+      <!-- Living Area Condition -->
+      <div class="form-section">
+        <div class="form-section-title">Living Area Condition</div>
+        <div class="score-hint">1 = Poor, 5 = Excellent</div>
+        <div id="score-livingArea" class="score-grid"></div>
+      </div>
+
+      <!-- Heating & Hot Water -->
+      <div class="form-section">
+        <div class="form-section-title">Heating and Hot Water</div>
+
+        <div class="field">
+          <label class="field-label">Heating Type</label>
+          <select name="heatingType" class="field-input" onchange="toggleOtherField(this,'heatingTypeOther')">
+            <option value="">Select</option>
+            <option>Gas Central Heating</option>
+            <option>Electric Heating</option>
+            <option>Storage Heaters</option>
+            <option>Underfloor Heating</option>
+            <option>Heat Pump</option>
+            <option>Other</option>
+          </select>
+          <input type="text" name="heatingTypeOther" id="heatingTypeOther" class="field-input" style="display:none;margin-top:8px" placeholder="Specify heating type">
+        </div>
+        <div class="score-hint">Heating Condition</div>
+        <div id="score-heating" class="score-grid"></div>
+
+        <div class="field" style="margin-top:12px">
+          <label class="field-label">Hot Water Type</label>
+          <select name="hotWaterType" class="field-input" onchange="toggleOtherField(this,'hotWaterTypeOther')">
+            <option value="">Select</option>
+            <option>Combi Boiler</option>
+            <option>System Boiler</option>
+            <option>Immersion Heater</option>
+            <option>Electric Shower Only</option>
+            <option>Heat Pump</option>
+            <option>Other</option>
+          </select>
+          <input type="text" name="hotWaterTypeOther" id="hotWaterTypeOther" class="field-input" style="display:none;margin-top:8px" placeholder="Specify hot water type">
+        </div>
+        <div class="score-hint">Hot Water Condition</div>
+        <div id="score-hotWater" class="score-grid"></div>
+      </div>
+
+      <!-- Amenities -->
+      <div class="form-section">
+        <div class="form-section-title">Amenities</div>
+        <div class="amenity-grid">
+          <div><input type="checkbox" id="am-garden" class="amenity-checkbox" value="Garden"><label for="am-garden" class="amenity-label">Garden</label></div>
+          <div><input type="checkbox" id="am-broadband" class="amenity-checkbox" value="Broadband"><label for="am-broadband" class="amenity-label">Broadband</label></div>
+          <div><input type="checkbox" id="am-parking" class="amenity-checkbox" value="Parking Space"><label for="am-parking" class="amenity-label">Parking Space</label></div>
+          <div><input type="checkbox" id="am-permits" class="amenity-checkbox" value="Parking Permits"><label for="am-permits" class="amenity-label">Parking Permits</label></div>
+          <div><input type="checkbox" id="am-other" class="amenity-checkbox" value="Other" onchange="document.getElementById('other-amenity-field').style.display=this.checked?'block':'none'"><label for="am-other" class="amenity-label">Other</label></div>
+        </div>
+        <div class="field" id="other-amenity-field" style="display:none">
+          <input type="text" name="amenitiesOther" class="field-input" placeholder="Specify other amenity">
+        </div>
+      </div>
+
+      <!-- Red Flags -->
+      <div class="form-section">
+        <div class="form-section-title">Red Flags / Concerns</div>
+        <div class="field">
+          <textarea name="redFlags" class="field-input" placeholder="Note any issues, risks, or concerns observed during the viewing"></textarea>
+        </div>
+      </div>
+
+      <!-- Photos -->
+      <div class="form-section">
+        <div class="form-section-title">Photos</div>
+        <input type="file" id="photo-input" accept="image/*" multiple style="display:none">
+        <button type="button" class="photo-upload-btn" onclick="document.getElementById('photo-input').click()">+ Add Photos</button>
+        <div id="photo-grid" class="photo-grid"></div>
+      </div>
+
+    </form>
+  </div>
+
+  <div class="form-bar">
+    <button class="btn btn-outline" onclick="saveReport()">Save</button>
+    <button class="btn btn-primary" onclick="generateFromForm()">Generate PDF</button>
+  </div>
+</div>
+
+<!-- Overlays -->
+<div id="loading-overlay" class="overlay">
+  <div class="spinner"></div>
+  <div class="overlay-text">Generating PDF...</div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+/* ---- State ---- */
+var photos = [];
+var editingKey = null;
+var logoBase64 = null;
+var logoRatio = 1;
+var STORAGE_PREFIX = 'letly_report_';
+
+/* ---- Init ---- */
+document.addEventListener('DOMContentLoaded', function() {
+  preloadLogo();
+  buildScoreGrids();
+  setupListeners();
+  if (sessionStorage.getItem('letly_auth') === '1') {
+    showScreen('dashboard-screen');
+    loadReports();
+  }
+});
+
+function preloadLogo() {
+  var img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = function() {
+    logoRatio = img.naturalHeight / img.naturalWidth;
+    var c = document.createElement('canvas');
+    c.width = img.naturalWidth;
+    c.height = img.naturalHeight;
+    c.getContext('2d').drawImage(img, 0, 0);
+    logoBase64 = c.toDataURL('image/png');
+  };
+  img.src = '/logo.png';
+}
+
+function buildScoreGrids() {
+  makeGrid('score-overall', [['walls','Walls/Paintwork'],['windows','Windows'],['doors','Doors'],['floor','Floor']]);
+  makeGrid('score-kitchen', [['cabinets','Cabinets/Units'],['worktops','Worktops'],['appliances','Appliances'],['floor','Floor']]);
+  makeGrid('score-bathroom', [['bathShower','Bath/Shower'],['sinkTaps','Sink/Taps'],['toilet','Toilet'],['tilesFloor','Tiles/Floor']]);
+  makeGrid('score-livingArea', [['walls','Walls/Paintwork'],['windows','Windows'],['flooring','Flooring'],['lighting','Lighting/Fixtures']]);
+  makeGrid('score-heating', [['heatingCondition','Condition']]);
+  makeGrid('score-hotWater', [['hotWaterCondition','Condition']]);
+}
+
+function makeGrid(id, items) {
+  var el = document.getElementById(id);
+  el.innerHTML = items.map(function(item) {
+    var btns = [1,2,3,4,5].map(function(v) {
+      return '<button type="button" class="score-btn" data-value="'+v+'">'+v+'</button>';
+    }).join('');
+    return '<div class="score-row" data-field="'+item[0]+'"><span class="score-label">'+item[1]+'</span><div class="score-buttons">'+btns+'</div></div>';
+  }).join('');
+}
+
+function setupListeners() {
+  document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('score-btn')) {
+      var sibs = e.target.parentElement.querySelectorAll('.score-btn');
+      for (var i = 0; i < sibs.length; i++) sibs[i].classList.remove('selected');
+      e.target.classList.add('selected');
+    }
+  });
+  document.getElementById('password-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') login();
+  });
+  document.getElementById('photo-input').addEventListener('change', handlePhotos);
+}
+
+/* ---- Screens ---- */
+function showScreen(id) {
+  var screens = document.querySelectorAll('.screen');
+  for (var i = 0; i < screens.length; i++) screens[i].classList.remove('active');
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+/* ---- Auth ---- */
+function login() {
+  var pw = document.getElementById('password-input').value;
+  var errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+  fetch('/api/auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: pw })
+  }).then(function(res) {
+    if (res.ok) {
+      sessionStorage.setItem('letly_auth', '1');
+      showScreen('dashboard-screen');
+      loadReports();
+    } else {
+      errEl.textContent = 'Incorrect password';
+    }
+  }).catch(function() {
+    errEl.textContent = 'Connection error';
+  });
+}
+
+function logout() {
+  sessionStorage.removeItem('letly_auth');
+  document.getElementById('password-input').value = '';
+  document.getElementById('login-error').textContent = '';
+  showScreen('login-screen');
+}
+
+/* ---- Dashboard ---- */
+function loadReports() {
+  var list = document.getElementById('reports-list');
+  var keys = [];
+  for (var i = 0; i < localStorage.length; i++) {
+    var k = localStorage.key(i);
+    if (k.indexOf(STORAGE_PREFIX) === 0) keys.push(k);
+  }
+  keys.sort().reverse();
+
+  if (keys.length === 0) {
+    list.innerHTML = '<div class="empty-state">No saved reports yet</div>';
+    return;
+  }
+
+  list.innerHTML = keys.map(function(key) {
+    var d = JSON.parse(localStorage.getItem(key));
+    return '<div class="report-card">' +
+      '<div class="report-name">' + esc(d.landlordName) + ' — ' + esc(d.reference) + '</div>' +
+      '<div class="report-address">' + esc(d.streetAddress) + '</div>' +
+      '<div class="report-date">' + esc(d.date) + '</div>' +
+      '<div class="report-actions">' +
+        '<button class="btn btn-outline btn-sm" onclick="editReport(\'' + escKey(key) + '\')">Edit</button>' +
+        '<button class="btn btn-primary btn-sm" onclick="viewPDF(\'' + escKey(key) + '\')">PDF</button>' +
+        '<button class="btn btn-danger btn-sm" onclick="deleteReport(\'' + escKey(key) + '\')">Delete</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+function deleteReport(key) {
+  if (confirm('Delete this report?')) {
+    localStorage.removeItem(key);
+    loadReports();
+  }
+}
+
+/* ---- Form nav ---- */
+function newReport() {
+  editingKey = null;
+  document.getElementById('report-form').reset();
+  clearAllScores();
+  photos = [];
+  updatePhotoGrid();
+  hideOtherFields();
+  document.getElementById('form-title').textContent = 'New Report';
+  showScreen('form-screen');
+}
+
+function editReport(key) {
+  editingKey = key;
+  var data = JSON.parse(localStorage.getItem(key));
+  setFormData(data);
+  document.getElementById('form-title').textContent = 'Edit Report';
+  showScreen('form-screen');
+}
+
+function backToDashboard() {
+  showScreen('dashboard-screen');
+  loadReports();
+}
+
+/* ---- Score helpers ---- */
+function getScores(gridId) {
+  var scores = {};
+  var rows = document.getElementById(gridId).querySelectorAll('.score-row');
+  for (var i = 0; i < rows.length; i++) {
+    var sel = rows[i].querySelector('.score-btn.selected');
+    scores[rows[i].dataset.field] = sel ? parseInt(sel.dataset.value) : 0;
+  }
+  return scores;
+}
+
+function setScores(gridId, scores) {
+  if (!scores) return;
+  var keys = Object.keys(scores);
+  for (var i = 0; i < keys.length; i++) {
+    var v = scores[keys[i]];
+    if (!v) continue;
+    var row = document.querySelector('#' + gridId + ' [data-field="' + keys[i] + '"]');
+    if (!row) continue;
+    var btn = row.querySelector('[data-value="' + v + '"]');
+    if (btn) btn.classList.add('selected');
+  }
+}
+
+function clearAllScores() {
+  var btns = document.querySelectorAll('.score-btn.selected');
+  for (var i = 0; i < btns.length; i++) btns[i].classList.remove('selected');
+}
+
+/* ---- Amenities ---- */
+function getAmenities() {
+  var cbs = document.querySelectorAll('.amenity-checkbox:checked');
+  var arr = [];
+  for (var i = 0; i < cbs.length; i++) arr.push(cbs[i].value);
+  return arr;
+}
+
+/* ---- Form data ---- */
+function getFormData() {
+  var f = document.getElementById('report-form');
+  var existingDate = null;
+  if (editingKey) {
+    try { existingDate = JSON.parse(localStorage.getItem(editingKey)).date; } catch(e) {}
+  }
+  return {
+    streetAddress: val(f, 'streetAddress'),
+    postcode: val(f, 'postcode'),
+    landlordName: val(f, 'landlordName'),
+    reference: val(f, 'reference'),
+    propertyType: val(f, 'propertyType'),
+    bedrooms: val(f, 'bedrooms'),
+    bathrooms: val(f, 'bathrooms'),
+    councilTaxBand: val(f, 'councilTaxBand'),
+    overallCondition: getScores('score-overall'),
+    kitchenCondition: getScores('score-kitchen'),
+    bathroomCondition: getScores('score-bathroom'),
+    livingAreaCondition: getScores('score-livingArea'),
+    heatingType: val(f, 'heatingType'),
+    heatingTypeOther: val(f, 'heatingTypeOther'),
+    heatingCondition: getScores('score-heating').heatingCondition || 0,
+    hotWaterType: val(f, 'hotWaterType'),
+    hotWaterTypeOther: val(f, 'hotWaterTypeOther'),
+    hotWaterCondition: getScores('score-hotWater').hotWaterCondition || 0,
+    amenities: getAmenities(),
+    amenitiesOther: val(f, 'amenitiesOther'),
+    redFlags: val(f, 'redFlags'),
+    photos: photos.slice(),
+    date: existingDate || formatDate()
+  };
+}
+
+function setFormData(d) {
+  var f = document.getElementById('report-form');
+  setVal(f, 'streetAddress', d.streetAddress);
+  setVal(f, 'postcode', d.postcode);
+  setVal(f, 'landlordName', d.landlordName);
+  setVal(f, 'reference', d.reference);
+  setVal(f, 'propertyType', d.propertyType);
+  setVal(f, 'bedrooms', d.bedrooms);
+  setVal(f, 'bathrooms', d.bathrooms);
+  setVal(f, 'councilTaxBand', d.councilTaxBand);
+
+  clearAllScores();
+  setScores('score-overall', d.overallCondition);
+  setScores('score-kitchen', d.kitchenCondition);
+  setScores('score-bathroom', d.bathroomCondition);
+  setScores('score-livingArea', d.livingAreaCondition);
+  setScores('score-heating', { heatingCondition: d.heatingCondition });
+  setScores('score-hotWater', { hotWaterCondition: d.hotWaterCondition });
+
+  setVal(f, 'heatingType', d.heatingType);
+  setVal(f, 'heatingTypeOther', d.heatingTypeOther);
+  toggleOtherField(f.querySelector('[name="heatingType"]'), 'heatingTypeOther');
+
+  setVal(f, 'hotWaterType', d.hotWaterType);
+  setVal(f, 'hotWaterTypeOther', d.hotWaterTypeOther);
+  toggleOtherField(f.querySelector('[name="hotWaterType"]'), 'hotWaterTypeOther');
+
+  var cbs = document.querySelectorAll('.amenity-checkbox');
+  for (var i = 0; i < cbs.length; i++) {
+    cbs[i].checked = (d.amenities || []).indexOf(cbs[i].value) !== -1;
+  }
+  if (d.amenitiesOther) {
+    setVal(f, 'amenitiesOther', d.amenitiesOther);
+    document.getElementById('other-amenity-field').style.display = 'block';
+  } else {
+    document.getElementById('other-amenity-field').style.display =
+      document.getElementById('am-other').checked ? 'block' : 'none';
+  }
+
+  setVal(f, 'redFlags', d.redFlags);
+  photos = d.photos ? d.photos.slice() : [];
+  updatePhotoGrid();
+}
+
+/* ---- Photos ---- */
+function handlePhotos(e) {
+  var files = Array.prototype.slice.call(e.target.files);
+  var pending = files.length;
+  if (!pending) return;
+  files.forEach(function(file) {
+    resizeImage(file, 1200, function(dataUrl) {
+      photos.push(dataUrl);
+      pending--;
+      if (pending === 0) updatePhotoGrid();
+    });
+  });
+  e.target.value = '';
+}
+
+function resizeImage(file, maxW, cb) {
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    var img = new Image();
+    img.onload = function() {
+      var w = img.width, h = img.height;
+      if (w > maxW) { h = h * (maxW / w); w = maxW; }
+      var c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      cb(c.toDataURL('image/jpeg', 0.8));
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function updatePhotoGrid() {
+  var grid = document.getElementById('photo-grid');
+  grid.innerHTML = photos.map(function(url, i) {
+    return '<div class="photo-thumb"><img src="' + url + '" alt="Photo ' + (i+1) + '"><button type="button" class="photo-remove" onclick="removePhoto(' + i + ')">x</button></div>';
+  }).join('');
+}
+
+function removePhoto(i) {
+  photos.splice(i, 1);
+  updatePhotoGrid();
+}
+
+/* ---- Save ---- */
+function saveReport() {
+  var data = getFormData();
+  if (!data.streetAddress || !data.landlordName || !data.reference) {
+    showToast('Fill in address, landlord name, and reference');
+    return;
+  }
+  var dateKey = data.date.replace(/\//g, '-');
+  var nameKey = slugify(data.landlordName);
+  var addrKey = slugify(data.streetAddress);
+  var newKey = STORAGE_PREFIX + dateKey + '_' + nameKey + '_' + addrKey;
+
+  if (editingKey && editingKey !== newKey) localStorage.removeItem(editingKey);
+
+  try {
+    localStorage.setItem(newKey, JSON.stringify(data));
+    editingKey = newKey;
+    showToast('Report saved');
+  } catch(e) {
+    showToast('Storage full — remove photos or old reports');
+  }
+}
+
+/* ---- PDF ---- */
+function generateFromForm() {
+  var data = getFormData();
+  if (!data.streetAddress || !data.landlordName || !data.reference) {
+    showToast('Fill in address, landlord name, and reference');
+    return;
+  }
+  showLoading();
+  setTimeout(function() { generatePDF(data); }, 80);
+}
+
+function viewPDF(key) {
+  var data = JSON.parse(localStorage.getItem(key));
+  showLoading();
+  setTimeout(function() { generatePDF(data); }, 80);
+}
+
+function generatePDF(data) {
+  try {
+    var jsPDF = window.jspdf.jsPDF;
+    var doc = new jsPDF('p', 'mm', 'a4');
+    var pw = 210, ph = 297, m = 20, cw = pw - 2 * m;
+
+    // ---- Cover page ----
+    var coverY = 70;
+    if (logoBase64) {
+      var lw = 80, lh = lw * logoRatio;
+      doc.addImage(logoBase64, 'PNG', (pw - lw) / 2, coverY, lw, lh);
+      coverY += lh + 20;
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(26);
+    doc.text('Letly Viewing Report', pw / 2, coverY, { align: 'center' });
+    coverY += 18;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(16);
+    doc.text(data.landlordName + ' — ' + data.reference, pw / 2, coverY, { align: 'center' });
+    coverY += 14;
+
+    doc.setFontSize(13);
+    doc.text(data.date, pw / 2, coverY, { align: 'center' });
+
+    // ---- Property Information ----
+    doc.addPage();
+    var y = m;
+
+    y = pdfSection(doc, 'Property Information', y, m, cw);
+    y = pdfKV(doc, 'Address', data.streetAddress, y, m);
+    y = pdfKV(doc, 'Postcode', data.postcode, y, m);
+    y = pdfKV(doc, 'Landlord', data.landlordName + ' — ' + data.reference, y, m);
+    y = pdfKV(doc, 'Property Type', data.propertyType, y, m);
+    y = pdfKV(doc, 'Bedrooms', data.bedrooms, y, m);
+    y = pdfKV(doc, 'Bathrooms', data.bathrooms, y, m);
+    y = pdfKV(doc, 'Council Tax Band', data.councilTaxBand, y, m);
+    y += 6;
+
+    // ---- Condition Assessment ----
+    y = pdfPageBreak(doc, y, 60);
+    y = pdfSection(doc, 'Condition Assessment', y, m, cw);
+
+    y = pdfConditionTable(doc, 'Overall Property', [
+      ['Walls/Paintwork', data.overallCondition.walls],
+      ['Windows', data.overallCondition.windows],
+      ['Doors', data.overallCondition.doors],
+      ['Floor', data.overallCondition.floor]
+    ], y, m);
+
+    y = pdfPageBreak(doc, y, 50);
+    y = pdfConditionTable(doc, 'Kitchen', [
+      ['Cabinets/Units', data.kitchenCondition.cabinets],
+      ['Worktops', data.kitchenCondition.worktops],
+      ['Appliances', data.kitchenCondition.appliances],
+      ['Floor', data.kitchenCondition.floor]
+    ], y, m);
+
+    y = pdfPageBreak(doc, y, 50);
+    y = pdfConditionTable(doc, 'Bathroom', [
+      ['Bath/Shower', data.bathroomCondition.bathShower],
+      ['Sink/Taps', data.bathroomCondition.sinkTaps],
+      ['Toilet', data.bathroomCondition.toilet],
+      ['Tiles/Floor', data.bathroomCondition.tilesFloor]
+    ], y, m);
+
+    y = pdfPageBreak(doc, y, 50);
+    y = pdfConditionTable(doc, 'Living Area', [
+      ['Walls/Paintwork', data.livingAreaCondition.walls],
+      ['Windows', data.livingAreaCondition.windows],
+      ['Flooring', data.livingAreaCondition.flooring],
+      ['Lighting/Fixtures', data.livingAreaCondition.lighting]
+    ], y, m);
+
+    // ---- Heating & Hot Water ----
+    y = pdfPageBreak(doc, y, 40);
+    y = pdfSection(doc, 'Heating and Hot Water', y, m, cw);
+    var ht = data.heatingType === 'Other' ? data.heatingTypeOther : data.heatingType;
+    y = pdfKV(doc, 'Heating Type', ht, y, m);
+    y = pdfKV(doc, 'Heating Condition', data.heatingCondition ? data.heatingCondition + ' / 5' : '-', y, m);
+    var hw = data.hotWaterType === 'Other' ? data.hotWaterTypeOther : data.hotWaterType;
+    y = pdfKV(doc, 'Hot Water Type', hw, y, m);
+    y = pdfKV(doc, 'Hot Water Condition', data.hotWaterCondition ? data.hotWaterCondition + ' / 5' : '-', y, m);
+    y += 6;
+
+    // ---- Amenities ----
+    y = pdfPageBreak(doc, y, 25);
+    y = pdfSection(doc, 'Amenities', y, m, cw);
+    var amText = (data.amenities || []).slice();
+    if (data.amenitiesOther) amText.push(data.amenitiesOther);
+    y = pdfWrap(doc, amText.length ? amText.join(', ') : 'None noted', y, m, cw);
+    y += 6;
+
+    // ---- Red Flags ----
+    if (data.redFlags) {
+      y = pdfPageBreak(doc, y, 25);
+      y = pdfSection(doc, 'Red Flags / Concerns', y, m, cw);
+      y = pdfWrap(doc, data.redFlags, y, m, cw);
+      y += 6;
+    }
+
+    // ---- Photos ----
+    if (data.photos && data.photos.length) {
+      doc.addPage();
+      y = m;
+      y = pdfSection(doc, 'Property Photos', y, m, cw);
+
+      for (var i = 0; i < data.photos.length; i++) {
+        try {
+          var props = doc.getImageProperties(data.photos[i]);
+          var iw = cw, ih = (props.height / props.width) * iw;
+          if (ih > 100) { ih = 100; iw = (props.width / props.height) * ih; }
+          y = pdfPageBreak(doc, y, ih + 8);
+          var ix = m + (cw - iw) / 2;
+          doc.addImage(data.photos[i], 'JPEG', ix, y, iw, ih);
+          y += ih + 8;
+        } catch(e) { /* skip bad image */ }
+      }
+    }
+
+    // ---- Save ----
+    var safeName = slugify(data.landlordName);
+    var safeAddr = slugify(data.streetAddress);
+    var fileName = 'Letly-Viewing-Report_' + data.date.replace(/\//g, '-') + '_' + safeName + '_' + safeAddr + '.pdf';
+    doc.save(fileName);
+  } catch(e) {
+    showToast('PDF error: ' + e.message);
+  }
+  hideLoading();
+}
+
+/* ---- PDF helpers ---- */
+function pdfPageBreak(doc, y, need) {
+  if (y + need > 277) { doc.addPage(); return 20; }
+  return y;
+}
+
+function pdfSection(doc, title, y, m, cw) {
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.setTextColor(0, 0, 0);
+  doc.text(title, m, y);
+  y += 2;
+  doc.setLineWidth(0.4);
+  doc.setDrawColor(0, 0, 0);
+  doc.line(m, y, m + cw, y);
+  return y + 8;
+}
+
+function pdfKV(doc, label, value, y, m) {
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text(label + ':', m, y);
+  doc.setFont('helvetica', 'normal');
+  doc.text(String(value || '-'), m + 52, y);
+  return y + 7;
+}
+
+function pdfConditionTable(doc, title, rows, y, m) {
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text(title, m, y);
+  y += 4;
+
+  doc.autoTable({
+    startY: y,
+    margin: { left: m, right: m },
+    head: [['Item', 'Score (1-5)']],
+    body: rows.map(function(r) { return [r[0], r[1] ? r[1] + ' / 5' : '-']; }),
+    theme: 'grid',
+    styles: { font: 'helvetica', fontSize: 10, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.2, cellPadding: 4 },
+    headStyles: { fillColor: [0,0,0], textColor: [255,255,255], fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [245,245,245] }
+  });
+
+  return doc.lastAutoTable.finalY + 10;
+}
+
+function pdfWrap(doc, text, y, m, maxW) {
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  var lines = doc.splitTextToSize(text, maxW);
+  for (var i = 0; i < lines.length; i++) {
+    y = pdfPageBreak(doc, y, 7);
+    doc.text(lines[i], m, y);
+    y += 6;
+  }
+  return y;
+}
+
+/* ---- Utils ---- */
+function val(form, name) {
+  var el = form.querySelector('[name="' + name + '"]');
+  return el ? el.value.trim() : '';
+}
+
+function setVal(form, name, v) {
+  var el = form.querySelector('[name="' + name + '"]');
+  if (el) el.value = v || '';
+}
+
+function toggleOtherField(sel, inputId) {
+  document.getElementById(inputId).style.display = sel.value === 'Other' ? 'block' : 'none';
+}
+
+function hideOtherFields() {
+  document.getElementById('heatingTypeOther').style.display = 'none';
+  document.getElementById('hotWaterTypeOther').style.display = 'none';
+  document.getElementById('other-amenity-field').style.display = 'none';
+}
+
+function formatDate() {
+  var d = new Date();
+  return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear();
+}
+
+function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+function slugify(s) {
+  return (s || '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 60);
+}
+
+function esc(s) {
+  var d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+function escKey(s) { return s.replace(/'/g, "\\'"); }
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function() { t.classList.remove('show'); }, 3000);
+}
+
+function showLoading() { document.getElementById('loading-overlay').classList.add('active'); }
+function hideLoading() { document.getElementById('loading-overlay').classList.remove('active'); }
+</script>
+</body>
+</html>
